@@ -7,7 +7,28 @@ const { analyzeSymbol } = require('./analysis');
 // --- CẤU HÌNH ---
 // Thay TOKEN của bạn vào file .env hoặc hardcode tạm vào đây (không khuyến khích)
 const token = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_TELEGRAM_BOT_TOKEN_HERE'; 
-const bot = new TelegramBot(token, { polling: true });
+// --- CẤU HÌNH BOT CHỐNG LỖI POLLING ---
+const bot = new TelegramBot(token, { 
+    polling: {
+        interval: 300,      // Chờ 300ms giữa các lần polling để đỡ spam server
+        autoStart: true,
+        params: {
+            timeout: 10     // Timeout ngắn để tránh treo kết nối
+        }
+    }
+});
+
+// Bắt lỗi polling để không bị crash app
+bot.on("polling_error", (err) => {
+    // Chỉ in ra lỗi nếu không phải lỗi EFATAL (hoặc in rút gọn để đỡ rác log)
+    if (err.code !== 'EFATAL') {
+        console.log(`[Polling Error] ${err.code}: ${err.message}`);
+    } else {
+        // Lỗi mạng tạm thời, bỏ qua không làm gì cả
+        // console.log("Connection jitter, reconnecting..."); 
+    }
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
